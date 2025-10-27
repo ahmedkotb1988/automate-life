@@ -255,7 +255,7 @@ func handleVerify(fileName string) (*ConfigJSON, error) {
 	}
 
 	if config.Git.RepoUrl == "" {
-		return nil, fmt.Errorf("git.repo_url is required")
+		return nil, fmt.Errorf("git.repo_url Cannot be empty")
 	}
 
 	if config.Project.Type == "" {
