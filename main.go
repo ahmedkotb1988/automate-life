@@ -308,9 +308,9 @@ func buildTokenURL(config *GitConfig) (string, error) {
 		return "", fmt.Errorf("repo_url is empty")
 	}
 	if strings.HasPrefix(config.RepoUrl, "http://") {
-		return strings.Replace(config.RepoUrl, "http://", fmt.Sprintf("http://%s:%s@", config.UserName, config.Token), 1), nil
+		return strings.Replace(config.RepoUrl, "http://", fmt.Sprintf("http://%s@", config.Token), 1), nil
 	} else if strings.HasPrefix(config.RepoUrl, "https://") {
-		return strings.Replace(config.RepoUrl, "https://", fmt.Sprintf("https://%s:%s@", config.UserName, config.Token), 1), nil
+		return strings.Replace(config.RepoUrl, "https://", fmt.Sprintf("https://%s@", config.Token), 1), nil
 	}
 
 	return "", fmt.Errorf("repo_url must start with http:// or https://")
