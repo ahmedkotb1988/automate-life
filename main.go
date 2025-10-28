@@ -120,6 +120,8 @@ func main() {
 			return
 		}
 		fmt.Printf("%s%sDirectory verified successfully and ready for automation. Run 'automateLife start' to automate!%s\n", bold, green, reset)
+	} else if args[1] == "test" {
+		handleTest(fileName)
 	} else {
 		fmt.Print(`
     _         _                        _         _     _  __      
@@ -345,4 +347,154 @@ func setupSSHKey(keyPath string) error {
 	os.Setenv("GIT_SSH_COMMAND", sshCommand)
 
 	return nil
+}
+
+func handleTest(fileName string) {
+	config, err := handleVerify(fileName)
+	if err != nil {
+		fmt.Printf("%sError%s: Configuration validation failed: %v\n", bold+red, reset, err)
+		return
+	}
+
+	projectDir := getProjectDirectoryName(config.Git.RepoUrl)
+	if projectDir == "" {
+		fmt.Printf("%sError:%s Could not determine project directory name\n", bold+red, reset)
+		return
+	}
+
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		fmt.Printf("%sError:%s Project directory '%s' not found. Run 'automateLife start' first to clone the repository.\n", bold+red, reset, projectDir)
+		return
+	}
+
+	fmt.Printf("%s%s=== Running Tests for %s ===%s\n\n", bold, blue, config.Project.Name, reset)
+
+	originalDir, err := os.Getwd()
+
+	if err != nil {
+		fmt.Printf("%sError:%s Could not get current directory: %v\n", bold+red, reset, err)
+		return
+	}
+
+	if err := os.Chdir(projectDir); err != nil {
+		fmt.Printf("%sError:%s Could not change to project directory: %v\n", bold+red, reset, err)
+		return
+	}
+	defer os.Chdir(originalDir)
+
+	for key, value := range config.Environment.Variables {
+		os.Setenv(key, value)
+	}
+
+	if config.Build.InstallCommand != "" {
+		fmt.Printf("%sStep 1:%s Installing dependencies...\n", bold, reset)
+
+		if err := runCommand(config.Build.InstallCommand); err != nil {
+			fmt.Printf("%sError:%s Dependency installation failed: %v\n", bold+red, reset, err)
+			return
+		}
+		fmt.Printf("%s%s✓ Dependencies installed successfully%s\n\n", bold, green, reset)
+	} else {
+
+		fmt.Printf("%sStep 1:%s Detecting and installing dependencies...\n", bold, reset)
+		if err := autoInstallDependencies(config.Build.Language); err != nil {
+			fmt.Printf("%sWarning:%s Could not auto-install dependencies: %v\n", bold+red, reset, err)
+		} else {
+			fmt.Printf("%s%s✓ Dependencies installed successfully%s\n\n", bold, green, reset)
+		}
+	}
+
+	fmt.Printf("%sStep 2:%s Running tests...\n", bold, reset)
+	testCommand := config.Build.TestCommand
+
+	if testCommand == "" {
+		testCommand = getDefaultTestCommand(config.Build.Language)
+		fmt.Printf("%sInfo:%s Using default test command for %s: %s\n", bold+blue, reset, config.Build.Language, testCommand)
+	}
+
+	if err := runCommand(testCommand); err != nil {
+		fmt.Printf("\n%s%s Tests failed!%s\n", bold, "\033[31m", reset)
+		return
+	}
+
+	fmt.Printf("\n%s%s All tests passed successfully!%s\n", bold, green, reset)
+}
+
+func getProjectDirectoryName(repoUrl string) string {
+
+	repoUrl = strings.TrimSuffix(repoUrl, ".git")
+	parts := strings.Split(repoUrl, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return ""
+}
+
+func runCommand(command string) error {
+
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return fmt.Errorf("empty command")
+	}
+
+	cmd := exec.Command(parts[0], parts[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func autoInstallDependencies(language string) error {
+	switch strings.ToLower(language) {
+	case "go", "golang":
+		if _, err := os.Stat("go.mod"); err != nil {
+			return runCommand("go mod download")
+		}
+	case "node", "nodejs", "javascript", "typescript":
+
+		if _, err := os.Stat("package.json"); err != nil {
+			if _, err := os.Stat("yarn.lock"); err != nil {
+				return runCommand("yarn install")
+			}
+			return runCommand("npm install")
+		}
+	case "python":
+		if _, err := os.Stat("requirements.txt"); err != nil {
+			return runCommand("pip install -r requirements.txt")
+		}
+		if _, err := os.Stat("Pipfile"); err != nil {
+			return runCommand("pipenv install")
+		}
+	case "dotnet", "c#", "csharp":
+		return runCommand("dotnet restore")
+	case "rust":
+		return runCommand("cargo fetch")
+	case "ruby":
+		if _, err := os.Stat("Gemfile"); err != nil {
+			return runCommand("bundle install")
+		}
+	}
+	return fmt.Errorf("could not determine how to install dependencies for language: %s", language)
+}
+
+func getDefaultTestCommand(language string) string {
+	switch strings.ToLower(language) {
+	case "go", "golang":
+		return "go test"
+	case "node", "nodejs", "javascript", "typescript":
+		return "npm test"
+	case "python":
+		return "pytest"
+	case "dotnet", "c#", "csharp":
+		return "dotnet test"
+	case "rust":
+		return "cargo test"
+	case "ruby":
+		return "bundle exec rspec"
+	case "java":
+		return "mvn test"
+	default:
+		return "echo 'No default test command for language: " + language + "'"
+	}
 }
