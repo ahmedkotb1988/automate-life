@@ -31,10 +31,15 @@ func HandleStart(fileName string) {
 		ui.Info(fmt.Sprintf("Using SSH authentication with key: %s", cfg.Git.SSHKeyPath))
 	}
 
-	// Build authenticated URL
-	authUrl, err := git.BuildAuthURL(&cfg.Git)
+	repoUrl, err := git.BuildAuthURL(&cfg.Git)
 	if err != nil {
-		ui.Error(fmt.Sprintf("Failed to build authenticated URL: %v", err))
+		ui.Error(fmt.Sprintf("Failed to build repo URL: %v", err))
+		return
+	}
+
+	authHeader, err := git.GetAuthHeader(&cfg.Git)
+	if err != nil {
+		ui.Error(fmt.Sprintf("Failed to build auth header: %v", err))
 		return
 	}
 
@@ -44,13 +49,24 @@ func HandleStart(fileName string) {
 
 	// Prepare git clone command
 	var cmd *exec.Cmd
+	var args []string
+
+	// Add auth header if present (for token/basic auth)
+	if authHeader != "" {
+		args = append(args, "-c", authHeader)
+	}
+
+	args = append(args, "clone")
 	if cfg.Git.Branch != "" && cfg.Git.Branch != "main" {
-		cmd = exec.Command("git", "clone", "-b", cfg.Git.Branch, authUrl)
+		args = append(args, "-b", cfg.Git.Branch)
 		fmt.Printf("Cloning repository (branch: %s%s%s%s) .....\n", ui.Bold, cfg.Git.Branch, ui.Reset, "")
 	} else {
-		cmd = exec.Command("git", "clone", authUrl)
 		fmt.Println("Cloning repository .....")
 	}
+
+	args = append(args, repoUrl)
+
+	cmd = exec.Command("git", args...)
 
 	cmd.Env = append(os.Environ(),
 		"GIT_TERMINAL_PROMPT=0",
