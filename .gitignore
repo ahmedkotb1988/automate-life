@@ -1,0 +1,83 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+automateLife
+*.out
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+*.coverprofile
+
+# Go workspace file
+go.work
+
+# Dependency directories (remove the comment if needed)
+vendor/
+
+# Config files (may contain sensitive information)
+ConfigFile.json
+*.config.json
+config.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Log files
+*.log
+logs/
+
+# Cloned repositories (from testing)
+*/*/
+!builder/
+!config/
+!git/
+!handlers/
+!ui/
+!utils/
+
+# Build artifacts
+bin/
+dist/
+build/
+
+# Debug files
+debug
+debug.test
+__debug_bin
+
+# Air - live reload for Go apps
+tmp/
+
+# GoReleaser
+dist/

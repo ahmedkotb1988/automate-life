@@ -2,6 +2,7 @@ package git
 
 import (
 	"automateLife/config"
+	"automateLife/utils"
 	"fmt"
 	"os"
 	"strings"
@@ -58,11 +59,14 @@ func SetupSSH(keyPath string) error {
 		return fmt.Errorf("ssh_key_path must be provided when auth_type is 'ssh'")
 	}
 
-	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		return fmt.Errorf("SSH key not found at %s", keyPath)
+	// Expand ~ and $HOME in the key path
+	expandedPath := utils.ExpandPath(keyPath)
+
+	if _, err := os.Stat(expandedPath); os.IsNotExist(err) {
+		return fmt.Errorf("SSH key not found at %s (expanded from: %s)", expandedPath, keyPath)
 	}
 
-	sshCommand := fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=no", keyPath)
+	sshCommand := fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=no", expandedPath)
 	os.Setenv("GIT_SSH_COMMAND", sshCommand)
 
 	return nil

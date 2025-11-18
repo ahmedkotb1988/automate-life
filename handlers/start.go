@@ -4,9 +4,11 @@ import (
 	"automateLife/config"
 	"automateLife/git"
 	"automateLife/ui"
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func HandleStart(fileName string) {
@@ -72,9 +74,20 @@ func HandleStart(fileName string) {
 
 	ui.Success("Repo cloned successfully!")
 
-	if cfg.Project.Name != "" {
-		fmt.Println("\nNext steps:")
-		fmt.Println("  cd into your project directory")
-		fmt.Printf("  Run %s%sautomateLife test%s to run tests\n", ui.Bold, ui.Blue, ui.Reset)
+	// Ask if user wants to run tests
+	fmt.Print("\nDo you want to run tests now? y/n\n")
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	if input == "y" {
+		fmt.Print("\nStarting tests...\n\n")
+		HandleTest(fileName)
+	} else {
+		if cfg.Project.Name != "" {
+			fmt.Println("\nNext steps:")
+			fmt.Println("  cd into your project directory")
+			fmt.Printf("  Run %s%sautomateLife test%s to run tests\n", ui.Bold, ui.Blue, ui.Reset)
+		}
 	}
 }

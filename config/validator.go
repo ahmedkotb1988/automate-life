@@ -1,6 +1,7 @@
 package config
 
 import (
+	"automateLife/utils"
 	"fmt"
 	"os"
 )
@@ -26,8 +27,10 @@ func (c *Config) Validate() error {
 		if c.Git.SSHKeyPath == "" {
 			return fmt.Errorf("git.ssh_key_path is required when auth_type is 'ssh'")
 		}
-		if _, err := os.Stat(c.Git.SSHKeyPath); os.IsNotExist(err) {
-			return fmt.Errorf("SSH key not found at: %s", c.Git.SSHKeyPath)
+		// Expand path in case it wasn't expanded yet
+		expandedPath := utils.ExpandPath(c.Git.SSHKeyPath)
+		if _, err := os.Stat(expandedPath); os.IsNotExist(err) {
+			return fmt.Errorf("SSH key not found at: %s (expanded from: %s)", expandedPath, c.Git.SSHKeyPath)
 		}
 	default:
 		return fmt.Errorf("git.auth_type must be 'token', 'basic', or 'ssh'")

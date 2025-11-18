@@ -1,6 +1,7 @@
 package config
 
 import (
+	"automateLife/utils"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,6 +18,7 @@ type Config struct {
 }
 
 type GitConfig struct {
+	Provider   string `json:"provider"`
 	RepoUrl    string `json:"repo_url"`
 	AuthType   string `json:"auth_type"`
 	UserName   string `json:"username"`
@@ -60,6 +62,7 @@ func DefaultConfigTemplate() string {
     "description": ""
   },
   "git": {
+    "provider": "github",
     "repo_url": "",
     "branch": "main",
     "auth_type": "token",
@@ -103,7 +106,27 @@ func Load(fileName string) (*Config, error) {
 		return nil, fmt.Errorf("failed to decode config: %w", err)
 	}
 
+	// Expand all paths in the config
+	config.ExpandPaths()
+
 	return &config, nil
+}
+
+// ExpandPaths expands ~ and $HOME in all path fields of the config
+func (c *Config) ExpandPaths() {
+	// Expand Git paths
+	c.Git.SSHKeyPath = utils.ExpandPath(c.Git.SSHKeyPath)
+
+	// Expand Build paths
+	c.Build.OutputDir = utils.ExpandPath(c.Build.OutputDir)
+	c.Build.InstallCommand = utils.ExpandPath(c.Build.InstallCommand)
+	c.Build.BuildCommand = utils.ExpandPath(c.Build.BuildCommand)
+	c.Build.TestCommand = utils.ExpandPath(c.Build.TestCommand)
+
+	// Expand environment variable values that might contain paths
+	for key, value := range c.Environment.Variables {
+		c.Environment.Variables[key] = utils.ExpandPath(value)
+	}
 }
 
 func Create(fileName string, content string) error {
