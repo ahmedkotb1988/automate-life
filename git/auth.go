@@ -59,8 +59,8 @@ func SetupSSH(keyPath string) error {
 		return fmt.Errorf("ssh_key_path must be provided when auth_type is 'ssh'")
 	}
 
-	// Expand ~ and $HOME in the key path
-	expandedPath := utils.ExpandPath(keyPath)
+	// Expand environment variables and tilde in the key path
+	expandedPath := utils.ExpandEnvVars(keyPath)
 
 	if _, err := os.Stat(expandedPath); os.IsNotExist(err) {
 		return fmt.Errorf("SSH key not found at %s (expanded from: %s)", expandedPath, keyPath)

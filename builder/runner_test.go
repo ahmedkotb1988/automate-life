@@ -65,12 +65,12 @@ func TestGetDefaultTestCommand(t *testing.T) {
 		{
 			name:     "Go",
 			language: "go",
-			expected: "go test",
+			expected: "go test ./...",
 		},
 		{
 			name:     "Golang (alternative)",
 			language: "golang",
-			expected: "go test",
+			expected: "go test ./...",
 		},
 		{
 			name:     "Node.js",
@@ -140,7 +140,7 @@ func TestGetDefaultTestCommand(t *testing.T) {
 		{
 			name:     "Case insensitive - GO",
 			language: "GO",
-			expected: "go test",
+			expected: "go test ./...",
 		},
 		{
 			name:     "Case insensitive - PYTHON",
@@ -165,63 +165,82 @@ func TestAutoInstallDependencies(t *testing.T) {
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)
 
-	// Change to temp directory
-	os.Chdir(tmpDir)
-
 	tests := []struct {
 		name        string
 		language    string
 		setupFiles  []string // Files to create before test
-		expectError bool
+		shouldSkip  bool     // Should return nil without running command
+		expectError bool     // Should return error
 	}{
 		{
 			name:        "Go with go.mod",
 			language:    "go",
 			setupFiles:  []string{"go.mod"},
+			shouldSkip:  false, // Will attempt to run go mod download
 			expectError: false,
 		},
 		{
 			name:        "Go without go.mod",
 			language:    "go",
 			setupFiles:  []string{},
+			shouldSkip:  true, // Should return nil immediately
+			expectError: false,
+		},
+		{
+			name:        "Node.js with package.json",
+			language:    "nodejs",
+			setupFiles:  []string{"package.json"},
+			shouldSkip:  false, // Will attempt npm install
+			expectError: false,
+		},
+		{
+			name:        "Node.js without package.json",
+			language:    "nodejs",
+			setupFiles:  []string{},
+			shouldSkip:  true,
 			expectError: false,
 		},
 		{
 			name:        "Unknown language",
 			language:    "fortran",
 			setupFiles:  []string{},
-			expectError: true,
+			shouldSkip:  false,
+			expectError: true, // Should error for unknown language
 		},
 		{
 			name:        "Empty language",
 			language:    "",
 			setupFiles:  []string{},
+			shouldSkip:  false,
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create setup files
+			// Create a unique test directory
 			testDir := filepath.Join(tmpDir, tt.name)
 			os.MkdirAll(testDir, 0755)
 			os.Chdir(testDir)
 
+			// Create setup files
 			for _, file := range tt.setupFiles {
 				os.WriteFile(file, []byte("test content"), 0644)
 			}
 
-			// Note: This will actually try to run commands, so we expect errors
-			// for languages where dependencies can't actually be installed
 			err := AutoInstallDependencies(tt.language)
 
 			if tt.expectError {
 				if err == nil {
 					t.Error("AutoInstallDependencies() expected error, got nil")
 				}
+			} else if tt.shouldSkip {
+				if err != nil {
+					t.Errorf("AutoInstallDependencies() should skip gracefully, got error: %v", err)
+				}
 			}
-			// For non-error cases, we don't check if err is nil because
-			// the actual dependency installation might fail in the test environment
+			// For cases where commands actually run, we don't check errors
+			// because they may fail in test environment (which is expected)
 		})
 	}
 }

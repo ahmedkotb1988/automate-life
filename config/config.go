@@ -112,20 +112,41 @@ func Load(fileName string) (*Config, error) {
 	return &config, nil
 }
 
-// ExpandPaths expands ~ and $HOME in all path fields of the config
+// ExpandPaths expands all environment variables in all string fields of the config
+// Users can use $VAR, ${VAR}, or ~ in any field
 func (c *Config) ExpandPaths() {
-	// Expand Git paths
-	c.Git.SSHKeyPath = utils.ExpandPath(c.Git.SSHKeyPath)
+	// Expand Git fields
+	c.Git.Provider = utils.ExpandEnvVars(c.Git.Provider)
+	c.Git.RepoUrl = utils.ExpandEnvVars(c.Git.RepoUrl)
+	c.Git.AuthType = utils.ExpandEnvVars(c.Git.AuthType)
+	c.Git.UserName = utils.ExpandEnvVars(c.Git.UserName)
+	c.Git.Password = utils.ExpandEnvVars(c.Git.Password)
+	c.Git.Branch = utils.ExpandEnvVars(c.Git.Branch)
+	c.Git.Token = utils.ExpandEnvVars(c.Git.Token)
+	c.Git.SSHKeyPath = utils.ExpandEnvVars(c.Git.SSHKeyPath)
 
-	// Expand Build paths
-	c.Build.OutputDir = utils.ExpandPath(c.Build.OutputDir)
-	c.Build.InstallCommand = utils.ExpandPath(c.Build.InstallCommand)
-	c.Build.BuildCommand = utils.ExpandPath(c.Build.BuildCommand)
-	c.Build.TestCommand = utils.ExpandPath(c.Build.TestCommand)
+	// Expand Project fields
+	c.Project.Name = utils.ExpandEnvVars(c.Project.Name)
+	c.Project.Type = utils.ExpandEnvVars(c.Project.Type)
+	c.Project.Description = utils.ExpandEnvVars(c.Project.Description)
 
-	// Expand environment variable values that might contain paths
+	// Expand Build fields
+	c.Build.Language = utils.ExpandEnvVars(c.Build.Language)
+	c.Build.InstallCommand = utils.ExpandEnvVars(c.Build.InstallCommand)
+	c.Build.BuildCommand = utils.ExpandEnvVars(c.Build.BuildCommand)
+	c.Build.TestCommand = utils.ExpandEnvVars(c.Build.TestCommand)
+	c.Build.OutputDir = utils.ExpandEnvVars(c.Build.OutputDir)
+
+	// Expand Azure fields
+	c.Azure.SubscriptionID = utils.ExpandEnvVars(c.Azure.SubscriptionID)
+	c.Azure.ResourceGroup = utils.ExpandEnvVars(c.Azure.ResourceGroup)
+	c.Azure.AppName = utils.ExpandEnvVars(c.Azure.AppName)
+	c.Azure.DeploymentType = utils.ExpandEnvVars(c.Azure.DeploymentType)
+	c.Azure.Region = utils.ExpandEnvVars(c.Azure.Region)
+
+	// Expand environment variable values
 	for key, value := range c.Environment.Variables {
-		c.Environment.Variables[key] = utils.ExpandPath(value)
+		c.Environment.Variables[key] = utils.ExpandEnvVars(value)
 	}
 }
 
