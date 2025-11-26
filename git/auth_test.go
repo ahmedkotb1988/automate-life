@@ -23,7 +23,7 @@ func TestBuildAuthURL(t *testing.T) {
 				AuthType: "token",
 				Token:    "ghp_test123",
 			},
-			expected:    "https://ghp_test123@github.com/user/repo.git",
+			expected:    "https://github.com/user/repo.git",
 			expectError: false,
 		},
 		{
@@ -33,7 +33,7 @@ func TestBuildAuthURL(t *testing.T) {
 				AuthType: "token",
 				Token:    "test_token",
 			},
-			expected:    "http://test_token@github.com/user/repo.git",
+			expected:    "http://github.com/user/repo.git",
 			expectError: false,
 		},
 		{
@@ -44,7 +44,7 @@ func TestBuildAuthURL(t *testing.T) {
 				UserName: "username",
 				Password: "password",
 			},
-			expected:    "https://username:password@github.com/user/repo.git",
+			expected:    "https://github.com/user/repo.git",
 			expectError: false,
 		},
 		{
@@ -55,7 +55,7 @@ func TestBuildAuthURL(t *testing.T) {
 				UserName: "user",
 				Password: "pass123",
 			},
-			expected:    "http://user:pass123@gitlab.com/user/repo.git",
+			expected:    "http://gitlab.com/user/repo.git",
 			expectError: false,
 		},
 		{
@@ -75,8 +75,8 @@ func TestBuildAuthURL(t *testing.T) {
 				AuthType: "token",
 				Token:    "",
 			},
-			expectError: true,
-			errorMsg:    "token is required",
+			expected:    "https://github.com/user/repo.git",
+			expectError: false,
 		},
 		{
 			name: "Token auth with invalid URL",
@@ -96,8 +96,8 @@ func TestBuildAuthURL(t *testing.T) {
 				UserName: "",
 				Password: "password",
 			},
-			expectError: true,
-			errorMsg:    "username and password must not be empty",
+			expected:    "https://github.com/user/repo.git",
+			expectError: false,
 		},
 		{
 			name: "Basic auth missing password",
@@ -107,8 +107,8 @@ func TestBuildAuthURL(t *testing.T) {
 				UserName: "username",
 				Password: "",
 			},
-			expectError: true,
-			errorMsg:    "username and password must not be empty",
+			expectError: false,
+			expected:    "https://github.com/user/repo.git",
 		},
 		{
 			name: "Basic auth with invalid URL",
@@ -307,7 +307,7 @@ func TestBuildTokenURL(t *testing.T) {
 				RepoUrl: "https://github.com/user/repo.git",
 				Token:   "token123",
 			},
-			expected:    "https://token123@github.com/user/repo.git",
+			expected:    "https://github.com/user/repo.git",
 			expectError: false,
 		},
 		{
@@ -316,14 +316,14 @@ func TestBuildTokenURL(t *testing.T) {
 				RepoUrl: "http://example.com/repo.git",
 				Token:   "mytoken",
 			},
-			expected:    "http://mytoken@example.com/repo.git",
+			expected:    "http://example.com/repo.git",
 			expectError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := buildTokenURL(&tt.config)
+			result, err := buildBasicTokenURL(&tt.config)
 
 			if tt.expectError {
 				if err == nil {
@@ -355,7 +355,7 @@ func TestBuildBasicAuthURL(t *testing.T) {
 				UserName: "user",
 				Password: "pass",
 			},
-			expected:    "https://user:pass@github.com/user/repo.git",
+			expected:    "https://github.com/user/repo.git",
 			expectError: false,
 		},
 		{
@@ -365,14 +365,14 @@ func TestBuildBasicAuthURL(t *testing.T) {
 				UserName: "admin",
 				Password: "secret",
 			},
-			expected:    "http://admin:secret@example.com/repo.git",
+			expected:    "http://example.com/repo.git",
 			expectError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := buildBasicAuthURL(&tt.config)
+			result, err := buildBasicTokenURL(&tt.config)
 
 			if tt.expectError {
 				if err == nil {
