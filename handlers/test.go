@@ -7,6 +7,7 @@ import (
 	"automateLife/ui"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func HandleTest(fileName string) {
@@ -27,19 +28,32 @@ func HandleTest(fileName string) {
 		return
 	}
 
-	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
-		ui.Error(fmt.Sprintf("Project directory '%s' not found. Run 'automateLife start' first.", projectDir))
+	originalDir, _ := os.Getwd()
+	fullProjectPath := projectDir
+
+	// If project directory is relative, make it absolute
+	if !filepath.IsAbs(projectDir) {
+		fullProjectPath = filepath.Join(originalDir, projectDir)
+	}
+
+	if _, err := os.Stat(fullProjectPath); os.IsNotExist(err) {
+		ui.Error(fmt.Sprintf("Project directory '%s' not found. Run 'automateLife start' first.", fullProjectPath))
+		ui.Info(fmt.Sprintf("Current directory: %s", originalDir))
+		ui.Info(fmt.Sprintf("Looking for: %s", fullProjectPath))
 		return
 	}
 
 	fmt.Printf("%s%s=== Running Tests for %s ===%s\n\n", ui.Bold, ui.Blue, cfg.Project.Name, ui.Reset)
+	ui.Info(fmt.Sprintf("Project directory: %s", fullProjectPath))
 
-	originalDir, _ := os.Getwd()
-	if err := os.Chdir(projectDir); err != nil {
+	if err := os.Chdir(fullProjectPath); err != nil {
 		ui.Error(fmt.Sprintf("Could not change to project directory: %v", err))
 		return
 	}
 	defer os.Chdir(originalDir)
+
+	currentDir, _ := os.Getwd()
+	ui.Info(fmt.Sprintf("Changed to: %s", currentDir))
 
 	// Set environment variables
 	for key, value := range cfg.Environment.Variables {
@@ -71,8 +85,11 @@ func HandleTest(fileName string) {
 		ui.Info(fmt.Sprintf("Using default test command for %s: %s", cfg.Build.Language, testCommand))
 	}
 
+	ui.Info(fmt.Sprintf("Executing: %s", testCommand))
+
 	if err := builder.RunCommand(testCommand); err != nil {
 		fmt.Printf("\n%s%s✗ Tests failed!%s\n", ui.Bold, ui.Red, ui.Reset)
+		ui.Info(fmt.Sprintf("Error: %v", err))
 		return
 	}
 

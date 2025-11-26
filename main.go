@@ -5,9 +5,16 @@ import (
 	"automateLife/handlers"
 	"automateLife/ui"
 	"os"
+	"os/user"
 )
 
 func main() {
+	// Ensure HOME environment variable is set
+	if os.Getenv("HOME") == "" {
+		if currentUser, err := user.Current(); err == nil {
+			os.Setenv("HOME", currentUser.HomeDir)
+		}
+	}
 
 	fileName := config.DefaultConfigFileName
 	args := os.Args
