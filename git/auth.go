@@ -11,6 +11,7 @@ import (
 
 func BuildAuthURL(config *config.GitConfig) (string, error) {
 	switch config.AuthType {
+	case "token", "basic":
 		return buildBasicTokenURL(config)
 	case "ssh":
 		return config.RepoUrl, nil
@@ -19,7 +20,7 @@ func BuildAuthURL(config *config.GitConfig) (string, error) {
 	}
 }
 
-func buildBasicTokenURL(config *config.GitConfig) (string, error){
+func buildBasicTokenURL(config *config.GitConfig) (string, error) {
 	if len(config.RepoUrl) == 0 {
 		return "", fmt.Errorf("repo_url is empty")
 	}
