@@ -11,19 +11,29 @@ import (
 
 func BuildAuthURL(config *config.GitConfig) (string, error) {
 	switch config.AuthType {
-	case "token", "basic":
-		if len(config.RepoUrl) == 0 {
-			return "", fmt.Errorf("repo_url is empty")
-		}
-		if !strings.HasPrefix(config.RepoUrl, "http://") && !strings.HasPrefix(config.RepoUrl, "https://") {
-			return "", fmt.Errorf("repo_url must start with http:// or https:// for token/basic auth")
-		}
-		return config.RepoUrl, nil
+	// case "token", "basic":
+	// 	if len(config.RepoUrl) == 0 {
+	// 		return "", fmt.Errorf("repo_url is empty")
+	// 	}
+	// 	if !strings.HasPrefix(config.RepoUrl, "http://") && !strings.HasPrefix(config.RepoUrl, "https://") {
+	// 		return "", fmt.Errorf("repo_url must start with http:// or https:// for token/basic auth")
+	// 	}
+		return buildBasicTokenURL(config)
 	case "ssh":
 		return config.RepoUrl, nil
 	default:
 		return "", fmt.Errorf("unsupported auth type: %s . Use 'token', 'basic' or 'ssh'", config.AuthType)
 	}
+}
+
+func buildBasicTokenURL(config *config.GitConfig) (string, error){
+	if len(config.RepoUrl) == 0 {
+		return "", fmt.Errorf("repo_url is empty")
+	}
+	if !strings.HasPrefix(config.RepoUrl, "http://") && !strings.HasPrefix(config.RepoUrl, "https://") {
+		return "", fmt.Errorf("repo_url must start with http:// or https:// for token/basic auth")
+	}
+	return config.RepoUrl, nil
 }
 
 func GetAuthHeader(config *config.GitConfig) (string, error) {
