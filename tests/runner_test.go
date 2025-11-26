@@ -1,6 +1,7 @@
-package builder
+package tests
 
 import (
+	"automateLife/builder"
 	"os"
 	"path/filepath"
 	"testing"
@@ -41,15 +42,15 @@ func TestRunCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := RunCommand(tt.command)
+			err := builder.RunCommand(tt.command)
 
 			if tt.expectError {
 				if err == nil {
-					t.Error("RunCommand() expected error, got nil")
+					t.Error("builder.RunCommand() expected error, got nil")
 				}
 			} else {
 				if err != nil {
-					t.Errorf("RunCommand() unexpected error: %v", err)
+					t.Errorf("builder.RunCommand() unexpected error: %v", err)
 				}
 			}
 		})
@@ -151,9 +152,9 @@ func TestGetDefaultTestCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetDefaultTestCommand(tt.language)
+			result := builder.GetDefaultTestCommand(tt.language)
 			if result != tt.expected {
-				t.Errorf("GetDefaultTestCommand(%q) = %q, want %q", tt.language, result, tt.expected)
+				t.Errorf("builder.GetDefaultTestCommand(%q) = %q, want %q", tt.language, result, tt.expected)
 			}
 		})
 	}
@@ -228,15 +229,15 @@ func TestAutoInstallDependencies(t *testing.T) {
 				os.WriteFile(file, []byte("test content"), 0644)
 			}
 
-			err := AutoInstallDependencies(tt.language)
+			err := builder.AutoInstallDependencies(tt.language)
 
 			if tt.expectError {
 				if err == nil {
-					t.Error("AutoInstallDependencies() expected error, got nil")
+					t.Error("builder.AutoInstallDependencies() expected error, got nil")
 				}
 			} else if tt.shouldSkip {
 				if err != nil {
-					t.Errorf("AutoInstallDependencies() should skip gracefully, got error: %v", err)
+					t.Errorf("builder.AutoInstallDependencies() should skip gracefully, got error: %v", err)
 				}
 			}
 			// For cases where commands actually run, we don't check errors
@@ -302,7 +303,7 @@ func TestAutoInstallDependenciesWithMockFiles(t *testing.T) {
 
 			// Call the function (it will likely fail because commands aren't available,
 			// but we're just testing that it detects the files correctly)
-			_ = AutoInstallDependencies(tt.language)
+			_ = builder.AutoInstallDependencies(tt.language)
 
 			// The main goal here is to ensure no panic occurs and the function
 			// attempts to use the correct command based on detected files

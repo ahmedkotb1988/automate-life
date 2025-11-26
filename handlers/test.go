@@ -77,12 +77,40 @@ func HandleTest(fileName string) {
 		}
 	}
 
-	// Run tests
-	fmt.Printf("%sStep 2:%s Running tests...\n", ui.Bold, ui.Reset)
+	// Step 2: Discover test files
+	fmt.Printf("%sStep 2:%s Discovering test files...\n", ui.Bold, ui.Reset)
+	testFiles, err := builder.DiscoverTests(currentDir)
+	if err != nil {
+		ui.Error(fmt.Sprintf("Failed to discover tests: %v", err))
+		return
+	}
+
+	if len(testFiles) == 0 {
+		ui.Warning("No test files found in the project")
+		return
+	}
+
+	// Step 3: Create unified test suite
+	fmt.Printf("\n%sStep 3:%s Creating unified test suite...\n", ui.Bold, ui.Reset)
+	unifiedDir, err := builder.CreateUnifiedTestSuite(testFiles, currentDir)
+	if err != nil {
+		ui.Error(fmt.Sprintf("Failed to create unified test suite: %v", err))
+		return
+	}
+	defer builder.CleanupUnifiedTestSuite(currentDir)
+
+	// Step 4: Run tests
+	fmt.Printf("\n%sStep 4:%s Running tests...\n", ui.Bold, ui.Reset)
 	testCommand := cfg.Build.TestCommand
 	if testCommand == "" {
 		testCommand = builder.GetDefaultTestCommand(cfg.Build.Language)
 		ui.Info(fmt.Sprintf("Using default test command for %s: %s", cfg.Build.Language, testCommand))
+	}
+
+	// Run tests from the unified directory
+	if err := os.Chdir(unifiedDir); err != nil {
+		ui.Error(fmt.Sprintf("Failed to change to unified test directory: %v", err))
+		return
 	}
 
 	ui.Info(fmt.Sprintf("Executing: %s", testCommand))

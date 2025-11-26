@@ -1,6 +1,7 @@
-package config
+package tests
 
 import (
+	"automateLife/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,19 +19,19 @@ func TestValidate(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		config      Config
+		config      config.Config
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "Valid config with token auth",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "token",
 					Token:    "test-token",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -38,14 +39,14 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Valid config with basic auth",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "basic",
 					UserName: "user",
 					Password: "pass",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -53,13 +54,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Valid config with SSH auth",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:    "git@github.com:test/repo.git",
 					AuthType:   "ssh",
 					SSHKeyPath: testSSHKey,
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -67,12 +68,12 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Missing repo URL",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					AuthType: "token",
 					Token:    "test-token",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -81,25 +82,25 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Missing project type",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "token",
 					Token:    "test-token",
 				},
-				Project: ProjectConfig{},
+				Project: config.ProjectConfig{},
 			},
 			expectError: true,
 			errorMsg:    "project.type is required",
 		},
 		{
 			name: "Token auth missing token",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "token",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -108,13 +109,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Basic auth missing username",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "basic",
 					Password: "pass",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -123,13 +124,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Basic auth missing password",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "basic",
 					UserName: "user",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -138,12 +139,12 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "SSH auth missing key path",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "git@github.com:test/repo.git",
 					AuthType: "ssh",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -152,13 +153,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "SSH auth with non-existent key",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:    "git@github.com:test/repo.git",
 					AuthType:   "ssh",
 					SSHKeyPath: "/nonexistent/key",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -167,12 +168,12 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Invalid auth type",
-			config: Config{
-				Git: GitConfig{
+			config: config.Config{
+				Git: config.GitConfig{
 					RepoUrl:  "https://github.com/test/repo",
 					AuthType: "invalid",
 				},
-				Project: ProjectConfig{
+				Project: config.ProjectConfig{
 					Type: "backend",
 				},
 			},
@@ -214,18 +215,18 @@ func TestValidateSSHWithExpandedPath(t *testing.T) {
 	sshKey := filepath.Join(sshDir, "id_rsa")
 	os.WriteFile(sshKey, []byte("test key"), 0600)
 
-	config := Config{
-		Git: GitConfig{
+	cfg := config.Config{
+		Git: config.GitConfig{
 			RepoUrl:    "git@github.com:test/repo.git",
 			AuthType:   "ssh",
 			SSHKeyPath: "~/.ssh/id_rsa", // Using tilde
 		},
-		Project: ProjectConfig{
+		Project: config.ProjectConfig{
 			Type: "backend",
 		},
 	}
 
-	err := config.Validate()
+	err := cfg.Validate()
 	if err != nil {
 		t.Errorf("Validate() should succeed with expanded path, got error: %v", err)
 	}

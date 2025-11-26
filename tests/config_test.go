@@ -1,16 +1,17 @@
-package config
+package tests
 
 import (
+	"automateLife/config"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestDefaultConfigTemplate(t *testing.T) {
-	template := DefaultConfigTemplate()
+	template := config.DefaultConfigTemplate()
 
 	if template == "" {
-		t.Error("DefaultConfigTemplate() returned empty string")
+		t.Error("config.DefaultConfigTemplate() returned empty string")
 	}
 
 	// Check if template contains expected keys
@@ -27,7 +28,7 @@ func TestDefaultConfigTemplate(t *testing.T) {
 
 	for _, key := range expectedKeys {
 		if !contains(template, key) {
-			t.Errorf("DefaultConfigTemplate() missing expected key: %s", key)
+			t.Errorf("config.DefaultConfigTemplate() missing expected key: %s", key)
 		}
 	}
 }
@@ -40,14 +41,14 @@ func TestCreateConfig(t *testing.T) {
 	content := `{"test": "data"}`
 
 	// Test successful creation
-	err := Create(testFile, content)
+	err := config.Create(testFile, content)
 	if err != nil {
-		t.Fatalf("Create() failed: %v", err)
+		t.Fatalf("config.Create() failed: %v", err)
 	}
 
 	// Verify file exists
 	if _, err := os.Stat(testFile); os.IsNotExist(err) {
-		t.Error("Create() did not create the file")
+		t.Error("config.Create() did not create the file")
 	}
 
 	// Verify content
@@ -60,12 +61,12 @@ func TestCreateConfig(t *testing.T) {
 	}
 
 	// Test creating file that already exists
-	err = Create(testFile, content)
+	err = config.Create(testFile, content)
 	if err == nil {
-		t.Error("Create() should fail when file already exists")
+		t.Error("config.Create() should fail when file already exists")
 	}
 	if err.Error() != "config file already exists" {
-		t.Errorf("Create() error = %q, want %q", err.Error(), "config file already exists")
+		t.Errorf("config.Create() error = %q, want %q", err.Error(), "config file already exists")
 	}
 }
 
@@ -123,9 +124,9 @@ func TestLoadConfig(t *testing.T) {
 	}
 
 	// Test loading config
-	cfg, err := Load(testFile)
+	cfg, err := config.Load(testFile)
 	if err != nil {
-		t.Fatalf("Load() failed: %v", err)
+		t.Fatalf("config.Load() failed: %v", err)
 	}
 
 	// Verify loaded values
@@ -154,9 +155,9 @@ func TestLoadConfig(t *testing.T) {
 	}
 
 	// Test loading non-existent file
-	_, err = Load(filepath.Join(tmpDir, "nonexistent.json"))
+	_, err = config.Load(filepath.Join(tmpDir, "nonexistent.json"))
 	if err == nil {
-		t.Error("Load() should fail for non-existent file")
+		t.Error("config.Load() should fail for non-existent file")
 	}
 }
 
@@ -170,9 +171,9 @@ func TestLoadConfigInvalidJSON(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	_, err = Load(testFile)
+	_, err = config.Load(testFile)
 	if err == nil {
-		t.Error("Load() should fail for invalid JSON")
+		t.Error("config.Load() should fail for invalid JSON")
 	}
 }
 
@@ -184,17 +185,17 @@ func TestExpandPaths(t *testing.T) {
 	testHome := "/Users/testuser"
 	os.Setenv("HOME", testHome)
 
-	cfg := &Config{
-		Git: GitConfig{
+	cfg := &config.Config{
+		Git: config.GitConfig{
 			SSHKeyPath: "~/.ssh/id_rsa",
 		},
-		Build: BuildConfig{
+		Build: config.BuildConfig{
 			OutputDir:      "$HOME/bin",
 			BuildCommand:   "go build -o ~/app",
 			TestCommand:    "go test",
 			InstallCommand: "go mod download",
 		},
-		Environment: EnvironmentConfig{
+		Environment: config.EnvironmentConfig{
 			Variables: map[string]string{
 				"DATA_DIR": "~/data",
 				"LOG_PATH": "$HOME/logs/app.log",
