@@ -1,6 +1,7 @@
-package utils
+package tests
 
 import (
+	"automateLife/utils"
 	"os"
 	"path/filepath"
 	"testing"
@@ -97,9 +98,9 @@ func TestExpandEnvVars(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandEnvVars(tt.input)
+			result := utils.ExpandEnvVars(tt.input)
 			if result != tt.expected {
-				t.Errorf("ExpandEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("utils.ExpandEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}
@@ -132,63 +133,14 @@ func TestExpandEnvVarsNoHOME(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandEnvVars(tt.input)
+			result := utils.ExpandEnvVars(tt.input)
 			if result != tt.expected {
-				t.Errorf("ExpandEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("utils.ExpandEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}
 }
 
-func TestExpandTilde(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
-	testHome := "/Users/testuser"
-	os.Setenv("HOME", testHome)
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "Empty string",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "No tilde",
-			input:    "/usr/bin",
-			expected: "/usr/bin",
-		},
-		{
-			name:     "Just tilde",
-			input:    "~",
-			expected: testHome,
-		},
-		{
-			name:     "Tilde with slash",
-			input:    "~/documents",
-			expected: filepath.Join(testHome, "documents"),
-		},
-		{
-			name:     "Tilde in middle (not expanded)",
-			input:    "/home/~user",
-			expected: "/home/~user",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := expandTilde(tt.input)
-			if result != tt.expected {
-				t.Errorf("expandTilde(%q) = %q, want %q", tt.input, result, tt.expected)
-			}
-		})
-	}
-}
 
 func TestExpandEnvVarsRealWorld(t *testing.T) {
 	// Test real-world config scenarios
@@ -236,9 +188,9 @@ func TestExpandEnvVarsRealWorld(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ExpandEnvVars(tt.input)
+			result := utils.ExpandEnvVars(tt.input)
 			if result != tt.expected {
-				t.Errorf("ExpandEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("utils.ExpandEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}
