@@ -3,6 +3,7 @@ package git
 import (
 	"automateLife/config"
 	"automateLife/utils"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -10,10 +11,8 @@ import (
 
 func BuildAuthURL(config *config.GitConfig) (string, error) {
 	switch config.AuthType {
-	case "token":
-		return buildTokenURL(config)
-	case "basic":
-		return buildBasicAuthURL(config)
+	case "token", "basic":
+		return buildBasicTokenURL(config)
 	case "ssh":
 		return config.RepoUrl, nil
 	default:
@@ -21,37 +20,50 @@ func BuildAuthURL(config *config.GitConfig) (string, error) {
 	}
 }
 
-func buildTokenURL(config *config.GitConfig) (string, error) {
+func buildBasicTokenURL(config *config.GitConfig) (string, error) {
+	if len(config.RepoUrl) == 0 {
+		return "", fmt.Errorf("repo_url is empty")
+	}
+	if !strings.HasPrefix(config.RepoUrl, "http://") && !strings.HasPrefix(config.RepoUrl, "https://") {
+		return "", fmt.Errorf("repo_url must start with http:// or https:// for token/basic auth")
+	}
+	return config.RepoUrl, nil
+}
+
+func GetAuthHeader(config *config.GitConfig) (string, error) {
+	switch config.AuthType {
+	case "token":
+		return buildTokenAuthHeader(config)
+	case "basic":
+		return buildBasicAuthHeader(config)
+	case "ssh":
+		// SSH doesn't use HTTP headers
+		return "", nil
+	default:
+		return "", fmt.Errorf("unsupported auth type: %s", config.AuthType)
+	}
+}
+
+func buildTokenAuthHeader(config *config.GitConfig) (string, error) {
 	if config.Token == "" {
 		return "", fmt.Errorf("token is required when auth_type is 'token'")
 	}
 
-	if len(config.RepoUrl) == 0 {
-		return "", fmt.Errorf("repo_url is empty")
-	}
-	if strings.HasPrefix(config.RepoUrl, "http://") {
-		return strings.Replace(config.RepoUrl, "http://", fmt.Sprintf("http://%s@", config.Token), 1), nil
-	} else if strings.HasPrefix(config.RepoUrl, "https://") {
-		return strings.Replace(config.RepoUrl, "https://", fmt.Sprintf("https://%s@", config.Token), 1), nil
-	}
+	credentials := fmt.Sprintf("%s:", config.Token)
+	encodedAuth := base64.StdEncoding.EncodeToString([]byte(credentials))
 
-	return "", fmt.Errorf("repo_url must start with http:// or https://")
+	return fmt.Sprintf("http.extraheader=AUTHORIZATION: Basic %s", encodedAuth), nil
 }
 
-func buildBasicAuthURL(config *config.GitConfig) (string, error) {
+func buildBasicAuthHeader(config *config.GitConfig) (string, error) {
 	if config.UserName == "" || config.Password == "" {
 		return "", fmt.Errorf("username and password must not be empty when auth_type is 'basic'")
 	}
 
-	if strings.HasPrefix(config.RepoUrl, "http://") {
-		credentials := fmt.Sprintf("%s:%s", config.UserName, config.Password)
-		return strings.Replace(config.RepoUrl, "http://", fmt.Sprintf("http://%s@", credentials), 1), nil
-	} else if strings.HasPrefix(config.RepoUrl, "https://") {
-		credentials := fmt.Sprintf("%s:%s", config.UserName, config.Password)
-		return strings.Replace(config.RepoUrl, "https://", fmt.Sprintf("https://%s@", credentials), 1), nil
-	}
+	credentials := fmt.Sprintf("%s:%s", config.UserName, config.Password)
+	encodedAuth := base64.StdEncoding.EncodeToString([]byte(credentials))
 
-	return "", fmt.Errorf("repo_url must start with http:// or https://")
+	return fmt.Sprintf("http.extraheader=AUTHORIZATION: Basic %s", encodedAuth), nil
 }
 
 func SetupSSH(keyPath string) error {
