@@ -28,9 +28,10 @@ func PrintWelcome() {
 	Printf("Welcome to %s%sAutomate Life%s, your gateway to automation\n\n", Bold, Green, Reset)
 	Printf("Run %s%sautomateLife%s then one of the following commands to start:\n\n", Bold, Blue, Reset)
 	println("init: creates a config file in your current directory")
-	println("start: starts the automation process using the created config file")
+	println("start: clones repository and optionally runs tests or builds")
 	println("verify: verifies that the current directory has the necessary parameters for automation")
-	println("test: runs the tests deployed in your project")
+	println("test: runs the tests in your project")
+	println("build: builds the project and creates artifacts (IPA for iOS, binaries for other languages)")
 }
 
 func Printf(format string, args ...interface{}) {

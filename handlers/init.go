@@ -13,7 +13,23 @@ import (
 )
 
 func HandleInit(fileName string) {
-	content := config.DefaultConfigTemplate()
+	// First, ask what type of project
+	projectTypePrompt := promptui.Select{
+		Label: "Select Project Type",
+		Items: []string{"backend", "frontend", "ios-mobile", "android-mobile", "cli", "library"},
+	}
+	_, projectType, err := projectTypePrompt.Run()
+	if err != nil {
+		ui.Error(fmt.Sprintf("Project type selection failed: %v", err))
+		return
+	}
+
+	var content string
+	if projectType == "ios-mobile" {
+		content = config.IOSConfigTemplate()
+	} else {
+		content = config.DefaultConfigTemplate()
+	}
 
 	if err := config.Create(fileName, content); err != nil {
 		if err.Error() == "config file already exists" {
@@ -90,10 +106,17 @@ func populateConfigInteractively(fileName string) error {
 	}
 	cfg.Git.AuthType = authType
 
-	// 3. Select Language
+	// 3. Select Language (adjust options based on project type)
+	var languageItems []string
+	if cfg.Project.Type == "mobile" {
+		languageItems = []string{"swift", "objective-c", "kotlin", "java"}
+	} else {
+		languageItems = []string{"go", "dotnet", "python", "nodejs", "java", "swift"}
+	}
+
 	langPrompt := promptui.Select{
 		Label: "Select Project Language",
-		Items: []string{"go", "dotnet", "python", "nodejs", "java"},
+		Items: languageItems,
 	}
 	_, language, err := langPrompt.Run()
 	if err != nil {
@@ -101,16 +124,8 @@ func populateConfigInteractively(fileName string) error {
 	}
 	cfg.Build.Language = language
 
-	// 4. Select Project Type
-	projectTypePrompt := promptui.Select{
-		Label: "Select Project Type",
-		Items: []string{"backend", "frontend", "fullstack", "cli", "library"},
-	}
-	_, projectType, err := projectTypePrompt.Run()
-	if err != nil {
-		return fmt.Errorf("project type selection failed: %w", err)
-	}
-	cfg.Project.Type = projectType
+	// Check if this is an iOS project based on language
+	isIOS := language == "swift" || language == "objective-c"
 
 	// 5. Select Deployment Type (only if using Azure DevOps)
 	if provider == "azure-devops" {
@@ -302,6 +317,188 @@ func populateConfigInteractively(fileName string) error {
 			return fmt.Errorf("Azure region input failed: %w", err)
 		}
 		cfg.Azure.Region = strings.TrimSpace(azureRegion)
+	}
+
+	// iOS Configuration (only if iOS project)
+	if isIOS {
+		fmt.Println("\niOS Configuration:")
+		fmt.Println("(Paths are optional - will be auto-detected if left empty)")
+
+		// Workspace or Project path (optional)
+		workspacePrompt := promptui.Prompt{
+			Label: "Xcode Workspace Path (optional, leave empty to auto-detect)",
+		}
+		workspacePath, _ := workspacePrompt.Run()
+		cfg.IOS.WorkspacePath = strings.TrimSpace(workspacePath)
+
+		if cfg.IOS.WorkspacePath == "" {
+			projectPathPrompt := promptui.Prompt{
+				Label: "Xcode Project Path (optional, leave empty to auto-detect)",
+			}
+			projectPath, _ := projectPathPrompt.Run()
+			cfg.IOS.ProjectPath = strings.TrimSpace(projectPath)
+		}
+
+		// Scheme
+		schemePrompt := promptui.Prompt{
+			Label: "Xcode Scheme Name",
+			Validate: func(input string) error {
+				if strings.TrimSpace(input) == "" {
+					return fmt.Errorf("scheme name is required")
+				}
+				return nil
+			},
+		}
+		scheme, err := schemePrompt.Run()
+		if err != nil {
+			return fmt.Errorf("scheme input failed: %w", err)
+		}
+		cfg.IOS.Scheme = strings.TrimSpace(scheme)
+
+		// Configuration
+		configPrompt := promptui.Select{
+			Label: "Build Configuration",
+			Items: []string{"Debug", "Release"},
+		}
+		_, configuration, err := configPrompt.Run()
+		if err != nil {
+			return fmt.Errorf("configuration selection failed: %w", err)
+		}
+		cfg.IOS.Configuration = configuration
+
+		// Code Signing
+		fmt.Println("\nCode Signing Configuration:")
+		signingTypePrompt := promptui.Select{
+			Label: "Code Signing Type",
+			Items: []string{"Automatic", "Manual"},
+		}
+		_, signingType, err := signingTypePrompt.Run()
+		if err != nil {
+			return fmt.Errorf("signing type selection failed: %w", err)
+		}
+		cfg.IOS.AutomaticSigning = (signingType == "Automatic")
+
+		// Bundle ID
+		bundleIDPrompt := promptui.Prompt{
+			Label: "Bundle Identifier (optional for automatic signing)",
+		}
+		bundleID, _ := bundleIDPrompt.Run()
+		cfg.IOS.BundleID = strings.TrimSpace(bundleID)
+
+		// Team ID
+		teamIDPrompt := promptui.Prompt{
+			Label: "Apple Developer Team ID",
+		}
+		teamID, _ := teamIDPrompt.Run()
+		cfg.IOS.TeamID = strings.TrimSpace(teamID)
+
+		// Manual signing specific fields
+		if !cfg.IOS.AutomaticSigning {
+			provisioningPrompt := promptui.Prompt{
+				Label: "Provisioning Profile Name",
+				Validate: func(input string) error {
+					if strings.TrimSpace(input) == "" {
+						return fmt.Errorf("provisioning profile is required for manual signing")
+					}
+					return nil
+				},
+			}
+			provProfile, err := provisioningPrompt.Run()
+			if err != nil {
+				return fmt.Errorf("provisioning profile input failed: %w", err)
+			}
+			cfg.IOS.ProvisioningProfile = strings.TrimSpace(provProfile)
+
+			codeSignPrompt := promptui.Prompt{
+				Label:   "Code Sign Identity",
+				Default: "iPhone Distribution",
+			}
+			codeSign, _ := codeSignPrompt.Run()
+			cfg.IOS.CodeSignIdentity = strings.TrimSpace(codeSign)
+		}
+
+		// Ask about TestFlight upload
+		testFlightPrompt := promptui.Select{
+			Label: "Upload to TestFlight after build?",
+			Items: []string{"No", "Yes"},
+		}
+		_, testFlightChoice, err := testFlightPrompt.Run()
+		if err != nil {
+			return fmt.Errorf("TestFlight selection failed: %w", err)
+		}
+		cfg.IOS.UploadToTestFlight = (testFlightChoice == "Yes")
+
+		// If TestFlight upload is enabled, collect App Store Connect credentials
+		if cfg.IOS.UploadToTestFlight {
+			fmt.Println("\nApp Store Connect Credentials:")
+			fmt.Println("Choose authentication method:")
+
+			authMethodPrompt := promptui.Select{
+				Label: "Authentication Method",
+				Items: []string{"API Key (Recommended)", "Apple ID"},
+			}
+			_, authMethod, err := authMethodPrompt.Run()
+			if err != nil {
+				return fmt.Errorf("auth method selection failed: %w", err)
+			}
+
+			if authMethod == "API Key (Recommended)" {
+				apiKeyIDPrompt := promptui.Prompt{
+					Label: "API Key ID",
+				}
+				apiKeyID, err := apiKeyIDPrompt.Run()
+				if err != nil {
+					return fmt.Errorf("API Key ID input failed: %w", err)
+				}
+				cfg.AppStoreConnect.APIKeyID = strings.TrimSpace(apiKeyID)
+
+				apiIssuerPrompt := promptui.Prompt{
+					Label: "API Issuer ID",
+				}
+				apiIssuer, err := apiIssuerPrompt.Run()
+				if err != nil {
+					return fmt.Errorf("API Issuer ID input failed: %w", err)
+				}
+				cfg.AppStoreConnect.APIIssuerID = strings.TrimSpace(apiIssuer)
+
+				apiKeyPathPrompt := promptui.Prompt{
+					Label: "API Key File Path (.p8)",
+				}
+				apiKeyPath, err := apiKeyPathPrompt.Run()
+				if err != nil {
+					return fmt.Errorf("API Key path input failed: %w", err)
+				}
+				cfg.AppStoreConnect.APIKeyPath = strings.TrimSpace(apiKeyPath)
+			} else {
+				appleIDPrompt := promptui.Prompt{
+					Label: "Apple ID Email",
+				}
+				appleID, err := appleIDPrompt.Run()
+				if err != nil {
+					return fmt.Errorf("Apple ID input failed: %w", err)
+				}
+				cfg.AppStoreConnect.AppleID = strings.TrimSpace(appleID)
+
+				appPasswordPrompt := promptui.Prompt{
+					Label: "App-Specific Password",
+					Mask:  '*',
+				}
+				appPassword, err := appPasswordPrompt.Run()
+				if err != nil {
+					return fmt.Errorf("App-specific password input failed: %w", err)
+				}
+				cfg.AppStoreConnect.AppSpecificPassword = strings.TrimSpace(appPassword)
+			}
+		}
+
+		// Set defaults for iOS
+		if cfg.IOS.SDK == "" {
+			cfg.IOS.SDK = "iphoneos"
+		}
+		if cfg.IOS.ExportMethod == "" {
+			cfg.IOS.ExportMethod = "app-store"
+		}
+		// Archive and export paths are optional (will use defaults if empty)
 	}
 
 	// Save the updated config

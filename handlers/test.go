@@ -60,6 +60,15 @@ func HandleTest(fileName string) {
 		os.Setenv(key, value)
 	}
 
+	// Check if this is an iOS project
+	isIOS := cfg.Build.Language == "swift" || cfg.Build.Language == "objective-c" || cfg.Build.Language == "objc"
+
+	if isIOS {
+		// Handle iOS testing
+		handleIOSTest(cfg, fullProjectPath)
+		return
+	}
+
 	// Install dependencies
 	if cfg.Build.InstallCommand != "" {
 		fmt.Printf("%sStep 1:%s Installing dependencies...\n", ui.Bold, ui.Reset)
@@ -122,4 +131,34 @@ func HandleTest(fileName string) {
 	}
 
 	fmt.Printf("\n%s%s✓ All tests passed successfully!%s\n", ui.Bold, ui.Green, ui.Reset)
+}
+
+func handleIOSTest(cfg *config.Config, projectPath string) {
+	fmt.Printf("%s%s=== Running iOS Tests for %s ===%s\n\n", ui.Bold, ui.Blue, cfg.Project.Name, ui.Reset)
+
+	// Change to project directory
+	if err := os.Chdir(projectPath); err != nil {
+		ui.Error(fmt.Sprintf("Could not change to project directory: %v", err))
+		return
+	}
+
+	iosBuilder := builder.NewIOSBuilder(cfg)
+
+	// Step 1: Install dependencies
+	fmt.Printf("%sStep 1:%s Installing dependencies...\n", ui.Bold, ui.Reset)
+	if err := iosBuilder.InstallDependencies(); err != nil {
+		ui.Warning(fmt.Sprintf("Dependency installation warning: %v", err))
+	} else {
+		ui.Success("Dependencies installed successfully\n")
+	}
+
+	// Step 2: Run tests
+	fmt.Printf("\n%sStep 2:%s Running iOS tests...\n", ui.Bold, ui.Reset)
+	if err := iosBuilder.Test(); err != nil {
+		fmt.Printf("\n%s%s✗ Tests failed!%s\n", ui.Bold, ui.Red, ui.Reset)
+		ui.Error(fmt.Sprintf("Error: %v", err))
+		return
+	}
+
+	fmt.Printf("\n%s%s✓ All iOS tests passed successfully!%s\n", ui.Bold, ui.Green, ui.Reset)
 }

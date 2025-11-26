@@ -78,3 +78,24 @@ func GetDefaultTestCommand(language string) string {
 		return "echo 'No default test command for language: " + language + "'"
 	}
 }
+
+func GetDefaultBuildCommand(language string) string {
+	switch strings.ToLower(language) {
+	case "go", "golang":
+		return "go build -o ./bin/app"
+	case "node", "nodejs", "javascript", "typescript":
+		return "npm run build"
+	case "python":
+		return "python setup.py build"
+	case "dotnet", "c#", "csharp":
+		return "dotnet build"
+	case "rust":
+		return "cargo build --release"
+	case "ruby":
+		return "bundle exec rake build"
+	case "java":
+		return "mvn package"
+	default:
+		return "echo 'No default build command for language: " + language + "'"
+	}
+}
