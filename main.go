@@ -33,6 +33,8 @@ func main() {
 		handlers.HandleVerify(fileName)
 	case "test":
 		handlers.HandleTest(fileName)
+	case "build":
+		handlers.HandleBuild(fileName)
 	default:
 		showHelp()
 	}
